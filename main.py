@@ -2,12 +2,14 @@ import numpy as np
 import random
 
 g_no = 2  # int(input('Number of genes you want to have in your individual?\n'))
-p_no = 5  # int(input('Population?\n'))
+p_no = 120  # int(input('Population?\n'))
 r_max = 5  # int(input('Select MAX value of gene: '))
 r_min = -5  # int(input('Select MIN value of gene: '))
 f = 0.5  # Scaling Factor
 p_cr = 0.7  # Crossover Probability
-t = 7 # number of iterations of DE you want to run.
+gens = 10  # number of generations of DE you want to run.
+zero = a = np.zeros([p_no, g_no], dtype=int)
+
 
 def in_there_func(j, i_bag):
     in_there = False
@@ -18,6 +20,9 @@ def in_there_func(j, i_bag):
 
 
 def cromo_fitness(cromo):
+    # you only need to change the code here if you want a different optimization function
+    # here the optimization function is two dimensional
+    # ie. [x1^2 + x2^2] <------This is what needs to be optimized
     fit = (cromo[0]) ** 2 + (cromo[1]) ** 2
     return fit
 
@@ -83,53 +88,64 @@ def mutation(pop_mat):
     return trial_vect_mat
 
 
-def crossover(trial_vect_mat, pop_mat):
-    """Input: Matrix containing trial vectors and original population matrix
-        Output: Child or offspring matrix for whole population  """
+def get_ibag():
     #  Do not leave it to luck that random will put something in it. If it becomes phi then no DE will occur.
     i_bag = [1]
     for j in range(g_no):
         in_there = in_there_func(j, i_bag)
         if random.random() < p_cr and in_there == False:
             i_bag.append(j)
+    return i_bag
 
-    offspring = pop_mat
+
+def gene_replace(pop_mat, trial_vect_mat, i_bag):
+    kids = zero
     for i in range(p_no):
         for j in range(g_no):
             in_there = in_there_func(j, i_bag)
             if in_there:
-                offspring[i][j] = trial_vect_mat[i][j]
+                kids[i][j] = trial_vect_mat[i][j]
+            else:
+                kids[i][j] = pop_mat[i][j]
+    # print('I am the papa', pop_mat)
+    # print('I am the child', kids)
+    return kids
+
+
+def greedy_sel(offspring, pop_mat):
     # Greedy Selection
     for i in range(p_no):
         if cromo_fitness(offspring[i]) > cromo_fitness(pop_mat[i]):
             offspring[i] = pop_mat[i]
-
     return offspring
 
 
-def diff_evolution(pop_mat,itrs):
+def crossover(trial_vect_mat, pop_mat):
+    """Input: Matrix containing trial vectors and original population matrix
+        Output: Child or offspring matrix for whole population  """
+    i_bag = get_ibag()
+    offspring = gene_replace(pop_mat, trial_vect_mat, i_bag)
+    return offspring
+
+
+def diff_evolution(pop_mat, itrs):
     trial_vect_mat = mutation(pop_mat)  # This is to perform mutation
     offspring = crossover(trial_vect_mat, pop_mat)  # This is to perform crossover
-
-    # print(f"Offspring generation : {itrs}\n", offspring)
-    # print(f"Fitness matrix for iteration {itrs}: \n", fitness(offspring))
-    print(f"Min Fitness matrix for iteration: {itrs}: ", min(fitness(offspring)))
-
-    return offspring
+    nex_gen = greedy_sel(pop_mat, offspring)
+    print(f'The min fitness of the generation {itrs} is ', min(fitness(nex_gen)))
+    return nex_gen
 
 
 # Initialize population matrix :
 pop_mat = np.random.randint(r_min, r_max, size=(p_no, g_no))
 # print("initial population is : ", pop_mat)
-# print("Fitness for iteration: 0 \n", fitness(pop_mat))
-print(f"Min Fitness matrix for iteration 0 : ", min(fitness(pop_mat)))
-print('*****************************************************************')
+print("Min Fitness for alpha generation is ", min(fitness(pop_mat)))
 
 itrs = 1
-while itrs <= t:
-    offspring = diff_evolution(pop_mat, itrs)
-    pop_mat = offspring
+while itrs <= gens:
+    print(f'*************************Iteration {itrs}****************************************')
+    child = diff_evolution(pop_mat, itrs)
+    pop_mat = child
     itrs += 1
-    print('*****************************************************************')
 
-print('This tool is awesome!!')
+print('##########################END##########################')
